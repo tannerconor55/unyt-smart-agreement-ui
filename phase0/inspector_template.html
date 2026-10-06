@@ -1,0 +1,571 @@
+<title>Agreement Inspector</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Familjen+Grotesk:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: a single evidence docket. Header names the agreement and its sources; an actor switch
+   reorders the same sections; the run explorer pairs input choices with the engine's ledger. */
+:root {
+  --paper: #F1F3F5;
+  --panel: #FFFFFF;
+  --sunk: #E8ECF0;
+  --ink: #17202A;
+  --muted: #5A6571;
+  --line: #D3D9DF;
+  --accent: #1E58A6;
+  --accent-bg: #E3ECF8;
+  --warn: #8F5400;
+  --warn-bg: #FAEFD9;
+  --danger: #A0261B;
+  --danger-bg: #FAE4E1;
+  --ok: #2B663A;
+  --ok-bg: #E2F0E5;
+  --font-display: "Familjen Grotesk", "Helvetica Neue", Arial, sans-serif;
+  --font-body: "IBM Plex Sans", "Segoe UI", Roboto, Arial, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --r: 6px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #11161C; --panel: #192028; --sunk: #141A21; --ink: #E3E8ED; --muted: #98A3AE; --line: #2B3540;
+    --accent: #86B4F2; --accent-bg: #1C2C44; --warn: #E8B45E; --warn-bg: #36290F; --danger: #F2958A; --danger-bg: #3A1B18;
+    --ok: #8FCB9D; --ok-bg: #15301E; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #11161C; --panel: #192028; --sunk: #141A21; --ink: #E3E8ED; --muted: #98A3AE; --line: #2B3540;
+  --accent: #86B4F2; --accent-bg: #1C2C44; --warn: #E8B45E; --warn-bg: #36290F; --danger: #F2958A; --danger-bg: #3A1B18;
+  --ok: #8FCB9D; --ok-bg: #15301E; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--paper); color: var(--ink); font: 15px/1.55 var(--font-body); }
+.wrap { max-width: 1120px; margin: 0 auto; padding-inline: 20px; padding-block: 28px 64px; display: grid; gap: 28px; }
+h1, h2, h3 { font-family: var(--font-display); text-wrap: balance; margin: 0; letter-spacing: -0.01em; }
+h1 { font-size: clamp(1.7rem, 4vw, 2.4rem); font-weight: 700; line-height: 1.1; }
+h2 { font-size: 1.25rem; font-weight: 600; }
+h3 { font-size: 1rem; font-weight: 600; }
+p { margin: 0; }
+.eyebrow { font: 600 0.72rem/1 var(--font-body); text-transform: uppercase; letter-spacing: 0.09em; color: var(--muted); }
+.mono { font-family: var(--font-mono); font-size: 0.86em; }
+.muted { color: var(--muted); }
+.small { font-size: 0.86rem; }
+code, pre { font-family: var(--font-mono); }
+pre { margin: 0; font-size: 0.8rem; line-height: 1.5; background: var(--sunk); border: 1px solid var(--line); border-radius: var(--r); padding: 12px; overflow-x: auto; max-height: 360px; }
+button { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* header */
+header { display: grid; gap: 14px; }
+.meta { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 0.84rem; color: var(--muted); }
+.meta b { color: var(--ink); font-weight: 500; }
+.seg { display: inline-flex; flex-wrap: wrap; gap: 4px; padding: 4px; background: var(--sunk); border: 1px solid var(--line); border-radius: 8px; }
+.seg button { border: 0; background: transparent; padding: 7px 12px; border-radius: 5px; cursor: pointer; font-weight: 500; font-size: 0.9rem; }
+.seg button[aria-pressed="true"] { background: var(--panel); box-shadow: 0 1px 2px rgb(0 0 0 / 0.12); color: var(--accent); }
+.seg button:hover:not([aria-pressed="true"]) { color: var(--accent); }
+.controls { display: flex; flex-wrap: wrap; gap: 12px 20px; align-items: end; }
+.controls > div { display: grid; gap: 6px; }
+.question { font-family: var(--font-display); font-size: 1.05rem; font-weight: 500; }
+
+/* sections */
+section { display: grid; gap: 14px; min-width: 0; }
+.sec-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 6px 16px; border-bottom: 1px solid var(--line); padding-bottom: 8px; }
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: var(--r); padding: 16px; min-width: 0; }
+.list { display: grid; gap: 10px; }
+.item { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; align-items: start; padding: 12px 14px; background: var(--panel); border: 1px solid var(--line); border-radius: var(--r); min-width: 0; }
+.item > .body { display: grid; gap: 6px; min-width: 0; }
+.glyph { width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; font: 700 0.8rem/1 var(--font-display); margin-top: 1px; }
+.g-warn { background: var(--warn-bg); color: var(--warn); }
+.g-danger { background: var(--danger-bg); color: var(--danger); }
+.g-info { background: var(--sunk); color: var(--muted); }
+.g-ok { background: var(--ok-bg); color: var(--ok); }
+.basis { font-family: var(--font-mono); font-size: 0.76rem; color: var(--muted); overflow-wrap: anywhere; }
+ul.plain { margin: 0; padding-left: 18px; display: grid; gap: 2px; }
+
+/* evidence badges: form encodes class */
+.ev { display: inline-flex; align-items: center; gap: 6px; font: 600 0.7rem/1 var(--font-body); letter-spacing: 0.04em; text-transform: uppercase; padding: 4px 7px; border-radius: 4px; white-space: nowrap; border: 1px solid transparent; vertical-align: middle; }
+.ev-rule { background: var(--ink); color: var(--panel); }
+.ev-observed { background: var(--accent-bg); color: var(--accent); border-color: var(--accent); }
+.ev-possible { background: var(--warn-bg); color: var(--warn); border: 1px dashed var(--warn); }
+.ev-simulated { background: transparent; color: var(--accent); border-color: var(--accent); }
+.ev-rederived { background: var(--ok-bg); color: var(--ok); }
+.ev-claim { background: var(--warn-bg); color: var(--warn); }
+.ev-unknown { background: transparent; color: var(--muted); border: 1px dotted var(--muted); }
+.ev-authored { background: var(--sunk); color: var(--muted); border-color: var(--line); }
+.ev-fail { background: var(--danger-bg); color: var(--danger); }
+.ev-n { font-family: var(--font-mono); text-transform: none; letter-spacing: 0; font-weight: 500; }
+.badges { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+
+/* tables */
+.tbl-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: var(--r); background: var(--panel); }
+table { border-collapse: collapse; width: 100%; font-size: 0.88rem; }
+th, td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font: 600 0.72rem/1.2 var(--font-body); text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); background: var(--sunk); white-space: nowrap; }
+tr:last-child td { border-bottom: 0; }
+td.num, .amount { font-family: var(--font-mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+/* explorer */
+.explore { display: grid; grid-template-columns: minmax(0, 340px) minmax(0, 1fr); gap: 20px; align-items: start; }
+@media (max-width: 860px) { .explore { grid-template-columns: minmax(0, 1fr); } }
+.picker { display: grid; gap: 12px; }
+.field { display: grid; gap: 5px; }
+.field label { font-size: 0.82rem; font-weight: 500; color: var(--muted); }
+select { font: inherit; font-size: 0.9rem; padding: 7px 9px; border-radius: 5px; border: 1px solid var(--line); background: var(--panel); color: var(--ink); width: 100%; }
+.outcomes { display: grid; gap: 6px; }
+.outcome { display: grid; grid-template-columns: 3.2em 1fr; gap: 10px; align-items: baseline; text-align: left; width: 100%; padding: 8px 10px; border: 1px solid var(--line); border-radius: 5px; background: var(--panel); cursor: pointer; font-size: 0.84rem; }
+.outcome:hover { border-color: var(--accent); }
+.outcome[aria-current="true"] { border-color: var(--accent); background: var(--accent-bg); }
+.outcome .n { font-family: var(--font-mono); color: var(--muted); text-align: right; }
+.outcome.fail .t { color: var(--danger); }
+
+.ledger { display: grid; gap: 16px; }
+.ledger-head { display: grid; gap: 8px; padding-bottom: 12px; border-bottom: 1px dashed var(--line); }
+.kv { display: grid; grid-template-columns: max-content 1fr; gap: 4px 14px; font-size: 0.86rem; }
+.kv dt { color: var(--muted); }
+.kv dd { margin: 0; min-width: 0; overflow-wrap: anywhere; }
+.block { display: grid; gap: 8px; }
+.block > .eyebrow { color: var(--ink); }
+.alloc { display: grid; gap: 6px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 5px; background: var(--paper); }
+.alloc-top { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 6px 12px; align-items: baseline; }
+.who { font-weight: 600; }
+.key { font-family: var(--font-mono); font-size: 0.76rem; color: var(--muted); }
+.equation { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; font-family: var(--font-mono); font-size: 0.86rem; padding: 10px 12px; background: var(--sunk); border-radius: 5px; }
+.equation .op { color: var(--muted); }
+.equation .term { display: grid; gap: 2px; }
+.equation .term small { font-family: var(--font-body); font-size: 0.68rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; }
+.none { color: var(--muted); font-style: italic; }
+.failbox { padding: 12px 14px; border-radius: 5px; background: var(--danger-bg); color: var(--danger); display: grid; gap: 6px; }
+.failbox p { color: var(--ink); }
+details summary { cursor: pointer; font-size: 0.84rem; color: var(--accent); font-weight: 500; }
+details[open] summary { margin-bottom: 8px; }
+.excluded { padding: 12px 14px; border: 1px dashed var(--muted); border-radius: 5px; color: var(--muted); font-size: 0.9rem; }
+
+/* lifecycle */
+.flow { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.step { padding: 6px 10px; border: 1px solid var(--line); border-radius: 4px; background: var(--panel); font-size: 0.86rem; }
+.step.here { border-color: var(--accent); color: var(--accent); font-weight: 600; }
+.step.unknown { border-style: dotted; color: var(--muted); }
+.arrow { color: var(--muted); }
+
+.grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr)); gap: 12px; }
+.linkbtn { background: none; border: 0; padding: 0; color: var(--accent); cursor: pointer; font-family: var(--font-mono); font-size: 0.8rem; text-decoration: underline; text-underline-offset: 2px; }
+.runlinks { display: flex; flex-wrap: wrap; gap: 4px 10px; }
+footer { font-size: 0.82rem; color: var(--muted); border-top: 1px solid var(--line); padding-top: 14px; display: grid; gap: 6px; }
+@media (prefers-reduced-motion: no-preference) { .outcome, .seg button { transition: background-color .12s, border-color .12s, color .12s; } }
+</style>
+
+<div class="wrap">
+  <header>
+    <span class="eyebrow">Unyt Smart Agreement Inspector · Phase 1a prototype</span>
+    <h1 id="title">Agreement</h1>
+    <p id="purpose" class="muted"></p>
+    <div class="meta" id="meta"></div>
+    <div class="controls">
+      <div>
+        <span class="eyebrow">Agreement</span>
+        <div class="seg" id="tplSeg" role="group" aria-label="Agreement"></div>
+      </div>
+      <div>
+        <span class="eyebrow">View as</span>
+        <div class="seg" id="viewSeg" role="group" aria-label="View as"></div>
+      </div>
+    </div>
+    <p class="question" id="viewQuestion"></p>
+  </header>
+  <main id="main" style="display:grid;gap:34px"></main>
+  <footer>
+    <p>Every amount on this page is a string returned by the real <span class="mono">rave_engine</span> or taken from the snapshot fed to it. Conservation is the only figure computed here, with exact decimals, and it is labelled as re-derived.</p>
+    <p>Evidence key: <span class="ev ev-rule">Rule</span> read from agreement rules · <span class="ev ev-observed">Observed</span> seen across explored engine runs · <span class="ev ev-possible">Possible</span> raised by lint, not yet seen · <span class="ev ev-simulated">Simulated</span> engine output on a hypothetical snapshot · <span class="ev ev-rederived">Re-derived</span> from documented rules · <span class="ev ev-unknown">Unknown</span> not observable here.</p>
+  </footer>
+</div>
+
+<script type="application/json" id="data">/*__DATA__*/</script>
+<script>
+(function () {
+  "use strict";
+  var DATA = JSON.parse(document.getElementById("data").textContent);
+  var AGENT_NAMES = {};
+  Object.keys(DATA.agents).forEach(function (n) { AGENT_NAMES[DATA.agents[n]] = n; });
+
+  var VIEWS = {
+    participant: { label: "Participant", q: "What can happen to what I park, and who decides?", sections: ["summary", "trust", "explore", "lifecycle"] },
+    beneficiary: { label: "Beneficiary", q: "Am I guaranteed payment, and who can redirect it?", sections: ["beneficiaries", "summary", "explore"] },
+    executor: { label: "Executor", q: "What do I supply, and what will the engine produce?", sections: ["inputs", "explore", "failures"] },
+    auditor: { label: "Auditor", q: "What did the engine produce, and does it conserve value?", sections: ["explore", "failures", "summary", "findings"] },
+    creator: { label: "Creator", q: "Is this agreement configured safely?", sections: ["trust", "summary", "inputs", "findings"] }
+  };
+  var PURPOSE = {
+    conditional_forward: "Forwards a parked amount to a receiver, or to a return address, depending on a value the executor supplies.",
+    lockbox: "Holds parked value as a lock carried between executions, pays out part of it, or releases it to the executor."
+  };
+
+  var state = { tpl: 0, view: "participant", runId: null, choice: null };
+  try {
+    var saved = JSON.parse(localStorage.getItem("inspector-state") || "{}");
+    if (saved.view && VIEWS[saved.view]) state.view = saved.view;
+  } catch (e) { /* storage unavailable */ }
+  var hash = (location.hash || "").slice(1);
+  DATA.templates.forEach(function (t, i) { if (t.template === hash) state.tpl = i; });
+
+  function esc(s) {
+    return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+    });
+  }
+  function shortKey(k) { return k && k.length > 16 ? k.slice(0, 9) + "…" + k.slice(-5) : k; }
+  function T() { return DATA.templates[state.tpl]; }
+  function runById(id) { return T().runs.find(function (r) { return r.id === id; }); }
+  function amountText(m) {
+    var ks = Object.keys(m || {});
+    if (!ks.length) return '<span class="none">no value</span>';
+    return ks.map(function (u) { return '<span class="amount">' + esc(m[u]) + '</span> <span class="muted small">unit ' + esc(u) + '</span>'; }).join(", ");
+  }
+  function evBadge(kind, extra) {
+    var map = { rule: ["ev-rule", "Rule"], observed: ["ev-observed", "Observed"], possible: ["ev-possible", "Possible · lint"],
+      simulated: ["ev-simulated", "Simulated"], rederived: ["ev-rederived", "Re-derived"], claim: ["ev-claim", "Claim"],
+      unknown: ["ev-unknown", "Unknown"], authored: ["ev-authored", "Authored"], fail: ["ev-fail", "Failed"], escalated: ["ev-observed", "Escalated to observed"] };
+    var m = map[kind];
+    return '<span class="ev ' + m[0] + '">' + m[1] + (extra ? ' <span class="ev-n">' + esc(extra) + '</span>' : "") + "</span>";
+  }
+  function verificationBadge(v) {
+    if (v === "Enforced by rule") return evBadge("rule", "enforced");
+    if (v === "Re-derived") return evBadge("rederived");
+    if (v === "Authenticated but unverified") return '<span class="ev ev-claim">Authenticated, unverified</span>';
+    if (v === "Unverified") return evBadge("claim", "unverified");
+    return evBadge("unknown");
+  }
+  function glyph(sev) {
+    if (sev === "danger") return '<span class="glyph g-danger" aria-hidden="true">!</span>';
+    if (sev === "warn") return '<span class="glyph g-warn" aria-hidden="true">!</span>';
+    if (sev === "ok") return '<span class="glyph g-ok" aria-hidden="true">✓</span>';
+    return '<span class="glyph g-info" aria-hidden="true">i</span>';
+  }
+  function runLinks(ids, max) {
+    max = max || 8;
+    var shown = ids.slice(0, max).map(function (id) {
+      return '<button class="linkbtn" data-run="' + esc(id) + '">' + esc(id.split("-").pop()) + "</button>";
+    }).join("");
+    return '<span class="runlinks">' + shown + (ids.length > max ? '<span class="muted small">+' + (ids.length - max) + " more</span>" : "") + "</span>";
+  }
+  function cleanError(e) {
+    var m = /Error(?:Runtime|DotExpr)\(\\?"(.*?)\\?",/.exec(e || "");
+    if (m) return m[1].replace(/\\"/g, '"');
+    return (e || "").replace(/^rave_engine::\S+ Guest\("?/, "");
+  }
+
+  /* ---------------- header ---------------- */
+  function renderHeader() {
+    var t = T();
+    document.getElementById("title").textContent = t.title;
+    document.getElementById("purpose").textContent = PURPOSE[t.template] || "";
+    var s = t.source;
+    document.getElementById("meta").innerHTML =
+      "<span>Template <b class='mono'>" + esc(s.template_dir) + "</b></span>" +
+      "<span>Instance <b class='mono'>" + esc(s.instance_file) + "</b></span>" +
+      "<span>Library commit <b class='mono'>" + esc(s.commit.slice(0, 10)) + "</b></span>" +
+      "<span>Code sha256 <b class='mono'>" + esc(s.code_sha256.slice(0, 12)) + "</b></span>" +
+      "<span>Engine <b class='mono'>" + esc(DATA.engine.crate + " " + DATA.engine.version) + "</b> · " + esc(DATA.engine.where) + "</span>" +
+      "<span>Snapshot " + evBadge("simulated", t.snapshot.mode) + "</span>";
+    document.getElementById("tplSeg").innerHTML = DATA.templates.map(function (x, i) {
+      return '<button data-tpl="' + i + '" aria-pressed="' + (i === state.tpl) + '">' + esc(x.template) + "</button>";
+    }).join("");
+    document.getElementById("viewSeg").innerHTML = Object.keys(VIEWS).map(function (k) {
+      return '<button data-view="' + k + '" aria-pressed="' + (k === state.view) + '">' + VIEWS[k].label + "</button>";
+    }).join("");
+    document.getElementById("viewQuestion").textContent = VIEWS[state.view].q;
+  }
+
+  /* ---------------- sections ---------------- */
+  function secHead(title, aside) {
+    return '<div class="sec-head"><h2>' + title + "</h2>" + (aside ? '<span class="muted small">' + aside + "</span>" : "") + "</div>";
+  }
+
+  function renderSummary() {
+    var t = T();
+    var items = t.conclusions.map(function (c) {
+      var ev = c.evidence === "observed" ? evBadge("observed", c.n + " of " + c.m + " runs") : evBadge(c.evidence);
+      return '<div class="item">' + glyph(c.severity) + '<div class="body"><p>' + esc(c.text) + '</p><div class="badges">' + ev + "</div>" +
+        (c.premises && c.premises.length ? '<ul class="plain small muted">' + c.premises.map(function (p) { return "<li>" + esc(p) + "</li>"; }).join("") + "</ul>" : "") +
+        (c.caveats ? c.caveats.map(function (cv) { return '<p class="small"><b>Caveat.</b> ' + esc(cv) + "</p>"; }).join("") : "") +
+        (c.support && c.support.length ? '<div class="small muted">Supporting runs: ' + runLinks(c.support) + "</div>" : "") +
+        "</div></div>";
+    }).join("");
+    return "<section>" + secHead("What this means", "Combined conclusions take the weakest evidence among their premises") + '<div class="list">' + items + "</div></section>";
+  }
+
+  function renderTrust() {
+    var t = T();
+    var rules = t.rule_statements.map(function (s) {
+      return '<div class="item">' + glyph(s.severity || "info") + '<div class="body"><p>' + esc(s.text) + '</p><div class="badges">' + evBadge("rule") + '</div><div class="basis">' + esc(s.basis) + "</div></div></div>";
+    }).join("");
+    var warns = t.warnings.length ? t.warnings.map(function (w) {
+      var st = w.status === "escalated" ? evBadge("escalated") : '<span class="ev ev-unknown">Open · not cleared</span>';
+      return '<div class="item">' + glyph(w.severity) + '<div class="body"><p>' + esc(w.text) + '</p><div class="badges">' + evBadge("possible") + st + '</div><div class="basis">' + esc(w.basis) + "</div></div></div>";
+    }).join("") : '<p class="muted">No lint warnings for this agreement.</p>';
+    return "<section>" + secHead("Who has authority", "Read directly from the agreement's rules") +
+      '<div class="list">' + rules + "</div>" +
+      '<h3>Warnings</h3><p class="small muted">Lint can raise a warning but never clear one. A warning is resolved only when an observed run escalates it to a fact, or a named person acknowledges it with a reason.</p>' +
+      '<div class="list">' + warns + "</div></section>";
+  }
+
+  function renderInputs() {
+    var t = T();
+    var rows = t.facts.inputs.map(function (i) {
+      var val = i.value !== undefined ? '<div class="mono small">' + esc(JSON.stringify(i.value)) + "</div>" : "";
+      return "<tr><td class='mono'>" + esc(i.name) + "</td><td>" + esc(i.supplier) + val + "</td><td>" + esc(i.attribution) + "</td><td>" +
+        verificationBadge(i.verification) + "</td><td class='small muted'>" + esc(i.note) + "</td></tr>";
+    }).join("");
+    var roles = t.facts.roles.map(function (r) {
+      return "<tr><td>" + esc(r.display_name) + " <span class='mono muted small'>" + esc(r.id) + "</span></td><td>" + esc(r.parks) +
+        "</td><td>" + esc(r.qualification) + "</td><td class='small muted'>" + esc(r.description) + "</td></tr>";
+    }).join("");
+    var opts = t.facts.options;
+    return "<section>" + secHead("Inputs and who supplies them", "Executor: " + esc(t.facts.executor_rule) + " · one_time_run " + esc(opts.one_time_run) + " · aggregate_execution " + esc(opts.aggregate_execution)) +
+      '<div class="tbl-wrap"><table><thead><tr><th>Input</th><th>Supplied by</th><th>Attribution</th><th>Verification</th><th>What validation does</th></tr></thead><tbody>' + rows + "</tbody></table></div>" +
+      '<h3>Roles</h3><div class="tbl-wrap"><table><thead><tr><th>Role</th><th>Parks</th><th>Who qualifies</th><th>Description (authored)</th></tr></thead><tbody>' + roles + "</tbody></table></div></section>";
+  }
+
+  function renderExplore() {
+    var t = T();
+    var e = t.exploration;
+    var picker = e.dimensions.map(function (d) {
+      var cur = state.choice[d.name];
+      return '<div class="field"><label for="dim-' + esc(d.name) + '">' + esc(d.label) + '</label><select id="dim-' + esc(d.name) + '" data-dim="' + esc(d.name) + '">' +
+        d.values.map(function (v) { return '<option value="' + esc(v) + '"' + (v === cur ? " selected" : "") + ">" + esc(v) + "</option>"; }).join("") + "</select></div>";
+    }).join("");
+    var outs = e.outcomes.map(function (o) {
+      var fail = o.outcome.indexOf("FAIL:") === 0;
+      var label = fail ? "Engine refused: " + cleanError(o.outcome) : o.outcome;
+      var current = o.runs.indexOf(state.runId) >= 0;
+      return '<button class="outcome' + (fail ? " fail" : "") + '" data-run="' + esc(o.runs[0]) + '" aria-current="' + current + '"><span class="n">' + o.runs.length + '</span><span class="t">' + esc(label) + "</span></button>";
+    }).join("");
+    return "<section>" + secHead("Outcome exploration", e.runs_total + " engine runs · " + e.runs_ok + " produced output · " + e.excluded.length + " impossible combinations skipped") +
+      '<p class="small muted">Pick a value for each input. Each combination was run through the real engine. These are the outcomes observed across the explored inputs, not every possible outcome.</p>' +
+      '<div class="explore"><div class="picker panel">' + picker +
+      '<div class="field"><span class="eyebrow">Outcomes seen</span><div class="outcomes">' + outs + "</div></div></div>" +
+      '<div class="panel" id="ledger">' + renderLedger() + "</div></div></section>";
+  }
+
+  function matchRun() {
+    var t = T();
+    var ch = state.choice;
+    var run = t.runs.find(function (r) {
+      return Object.keys(ch).every(function (k) { return r.choice[k] === ch[k]; });
+    });
+    if (run) return { run: run };
+    var ex = t.exploration.excluded.find(function (x) {
+      return Object.keys(ch).every(function (k) { return describe(x.choice[k]) === ch[k]; });
+    });
+    return { excluded: ex };
+  }
+  function describe(v) {
+    if (v === "<absent>") return "absent";
+    if (typeof v === "string" && v[0] === "@") return v.slice(1);
+    if (v && typeof v === "object" && !Array.isArray(v) && "data" in v) {
+      var d = v.data;
+      if (d === null) return "none";
+      if (d && typeof d === "object" && d.id) return String(d.id).replace(/^@/, "");
+      return typeof d === "string" ? describe(d) : JSON.stringify(d);
+    }
+    if (Array.isArray(v)) return v.length ? v.map(function (a) { return a.data.amount["0"] + " (unit 0)"; }).join(" + ") : "nothing parked";
+    return JSON.stringify(v);
+  }
+
+  function renderLedger() {
+    var m = matchRun();
+    if (!m.run) {
+      return '<div class="excluded"><b>Not run.</b> ' + esc(m.excluded ? m.excluded.reason : "This combination was not explored.") + "</div>";
+    }
+    var r = m.run;
+    state.runId = r.id;
+    var t = T();
+    var head = '<div class="ledger-head"><div class="badges"><h3 style="margin-right:6px">Effect ledger · run ' + esc(r.id.split("-").pop()) + "</h3>" +
+      (r.ok ? evBadge("simulated", DATA.engine.crate + " " + DATA.engine.version) : evBadge("fail")) +
+      '<span class="ev ev-unknown">DNA not run · not committed</span></div>' +
+      '<dl class="kv"><dt>Executor</dt><dd><b>' + esc(r.executor_name) + '</b> <span class="key">' + esc(shortKey(r.executor)) + "</span></dd>" +
+      (r.executed_timestamp ? "<dt>Executed at</dt><dd class='mono'>" + esc(r.executed_timestamp) + ' <span class="muted small">(assumed)</span></dd>' : "") +
+      "<dt>Snapshot</dt><dd class='mono'>" + esc(r.fingerprint) + ' <span class="muted small">fingerprint</span></dd></dl></div>';
+
+    if (!r.ok) {
+      var ic = r.input_check;
+      return head + '<div class="failbox"><b>Engine refused this run. No RAVE would be committed.</b><p>' + esc(cleanError(r.error)) + "</p>" +
+        (ic && !ic.ok ? "<p class='small'>The engine's input validator also rejects these inputs: <span class='mono'>" + esc((ic.path || []).join(".")) + "</span> " + esc(ic.reason) + ".</p>" : "") +
+        "<p class='small'>Parked inputs would stay parked.</p></div>" +
+        "<details><summary>Raw engine error</summary><pre>" + esc(r.error) + "</pre></details>" +
+        "<details><summary>Engine input</summary><pre>" + esc(JSON.stringify(r.input, null, 2)) + "</pre></details>";
+    }
+    var L = r.ledger;
+    var consumed = L.consumed.length ? '<div class="tbl-wrap"><table><thead><tr><th>Input</th><th>Amount</th><th>Source link</th><th>Parked by</th><th>Cited</th></tr></thead><tbody>' +
+      L.consumed.map(function (c) {
+        return "<tr><td class='mono'>" + esc(c.input) + "</td><td>" + amountText(c.amounts) + "</td><td class='mono'>" + esc(c.source) + "</td><td>" + esc(c.parked_by) + "</td><td>" +
+          (c.cited ? '<span class="ev ev-rederived">Cited</span>' : '<span class="ev ev-fail">Not cited · lost</span>') + "</td></tr>";
+      }).join("") + "</tbody></table></div>" : '<p class="none">No parked value consumed.</p>';
+    var prev = L.previous_execution ? '<p class="small">Previously locked on <b>' + esc(r.executor_name) + "</b>'s chain: " + amountText(L.previously_locked) +
+      ' from <span class="mono">' + esc(L.previous_execution) + "</span> " + evBadge("rederived") + "</p>" : '<p class="small muted">No previous execution on ' + esc(r.executor_name) + "'s chain.</p>";
+    var allocs = L.allocations.length ? L.allocations.map(function (a) {
+      var trace = a.trace.length ? a.trace.map(function (tr) {
+        return '<li><span class="mono">' + esc(tr.source) + "</span> — " + esc(tr.supplier || tr.attribution) + " " + verificationBadge(tr.verification) + "</li>";
+      }).join("") : "<li class='muted'>No input or preset matches this address.</li>";
+      return '<div class="alloc"><div class="alloc-top"><span><span class="who">' + esc(a.receiver) + '</span> <span class="key">' + esc(shortKey(a.receiver_key)) + "</span></span><span>" +
+        (a.name_only ? '<span class="none">Name only, no value (a pure hold that cites its sources)</span>' : amountText(a.amounts)) + "</span></div>" +
+        '<div class="small">Sources: <span class="mono">' + esc(a.sources.join(", ") || "none") + "</span></div>" +
+        '<div class="small">Why this address: <ul class="plain">' + trace + "</ul></div>" +
+        (a.name_only ? "" : '<div class="small">Collection ' + evBadge("unknown") + " pending; no chain observed in a simulation</div>") + "</div>";
+    }).join("") : '<p class="none">No allocations.</p>';
+    var locked = L.locked ? amountText(L.locked) + ' <span class="muted small">carried to ' + esc(r.executor_name) + "'s next execution</span>" : '<span class="none">None</span>';
+    var eq = L.conservation.length ? L.conservation.map(function (c) {
+      return '<div class="equation"><span class="term"><small>Cited parked</small>' + esc(c.cited_parked) + '</span><span class="op">+</span><span class="term"><small>Prev. locked</small>' + esc(c.previously_locked) +
+        '</span><span class="op">=</span><span class="term"><small>Allocated</small>' + esc(c.allocated) + '</span><span class="op">+</span><span class="term"><small>Newly locked</small>' + esc(c.newly_locked) +
+        '</span><span class="op">unit ' + esc(c.unit) + "</span>" + (c.holds ? '<span class="ev ev-rederived">Holds</span>' : '<span class="ev ev-fail">Does not hold</span>') + "</div>";
+    }).join("") : '<p class="none">No value moved in this run.</p>';
+    var stateBlock = function (label, v) {
+      return "<div><span class='small muted'>" + label + "</span> " + (v == null ? '<span class="none">None</span>' : "<pre>" + esc(JSON.stringify(v, null, 2)) + "</pre>") + "</div>";
+    };
+    var credit = L.credit_limit ? '<p class="small"><b>credit_limit</b> ' + amountText(L.credit_limit) + ". Recorded. Takes effect only if this is the lane's designated credit-limit-adjustment agreement, executed by the lane's bridging agent.</p>" : "";
+    var rejected = (L.rejected_links.length || L.redacted_links.length) ? "<pre>" + esc(JSON.stringify({ rejected: L.rejected_links, redacted: L.redacted_links }, null, 2)) + "</pre>" : '<span class="none">None</span>';
+    var checks = '<ul class="plain small">' +
+      "<li>Inputs vs runtime signature: " + (r.input_check.ok ? '<span class="ev ev-rule">Engine validator: pass</span>' : '<span class="ev ev-fail">Engine validator: ' + esc(r.input_check.reason) + "</span>") + "</li>" +
+      "<li>Output vs output signature: " + (r.output_check && r.output_check.ok ? '<span class="ev ev-rule">Engine validator: pass</span>' : '<span class="ev ev-fail">Engine validator: ' + esc(r.output_check && r.output_check.reason) + "</span>") + "</li></ul>";
+    return head +
+      '<div class="block"><span class="eyebrow">Value consumed</span>' + consumed + prev + "</div>" +
+      '<div class="block"><span class="eyebrow">Allocations</span>' + allocs + "</div>" +
+      '<div class="block"><span class="eyebrow">Locked value</span><div>' + locked + "</div></div>" +
+      '<div class="block"><span class="eyebrow">Conservation</span>' + eq + '<p class="small muted">' + evBadge("rederived") + " from the documented DNA rule. The DNA itself was not run.</p></div>" +
+      '<div class="block"><span class="eyebrow">State (not value)</span>' + stateBlock("carryover", L.carryover) + stateBlock("computed_values", L.computed_values) + credit + "</div>" +
+      '<div class="block"><span class="eyebrow">Inputs dropped</span><div class="small">' + rejected + "</div></div>" +
+      '<div class="block"><span class="eyebrow">Checks</span>' + checks + "</div>" +
+      "<details><summary>Raw engine output</summary><pre>" + esc(JSON.stringify(r.raw_output, null, 2)) + "</pre></details>" +
+      "<details><summary>Engine input (snapshot)</summary><pre>" + esc(JSON.stringify(r.input, null, 2)) + "</pre></details>";
+  }
+
+  function renderBeneficiaries() {
+    var t = T();
+    var ok = t.exploration.runs_ok;
+    var cards = t.beneficiaries.map(function (b) {
+      var traces = {};
+      b.traces.forEach(function (tr) { traces[tr.source] = tr; });
+      var tl = Object.keys(traces).map(function (k) {
+        var tr = traces[k];
+        return "<li><span class='mono'>" + esc(tr.source) + "</span> — " + esc(tr.supplier || tr.attribution) + " " + verificationBadge(tr.verification) + "</li>";
+      }).join("");
+      return '<div class="panel" style="display:grid;gap:8px"><div class="alloc-top"><h3>' + esc(b.name) + '</h3><span class="key">' + esc(shortKey(DATA.agents[b.name] || "")) + "</span></div>" +
+        '<p class="small">Received value in <b>' + b.received_in.length + "</b> of " + ok + " successful runs. Received nothing in <b>" + b.nothing_in.length + "</b>." +
+        (b.name_only_in.length ? " Named without value (a hold) in " + b.name_only_in.length + "." : "") + "</p>" +
+        '<div class="badges">' + evBadge("observed", b.received_in.length + " of " + ok + " runs") + "</div>" +
+        '<div class="small">Their address came from:<ul class="plain">' + tl + "</ul></div>" +
+        (b.received_in.length ? '<div class="small muted">Paid in: ' + runLinks(b.received_in, 6) + "</div>" : "") +
+        (b.nothing_in.length ? '<div class="small muted">Not paid in: ' + runLinks(b.nothing_in, 6) + "</div>" : "") + "</div>";
+    }).join("");
+    return "<section>" + secHead("Beneficiaries", "Anyone who received an allocation in the explored runs, role or not") +
+      '<p class="small muted">Payment is never guaranteed by being named. Each card shows where the address came from and how often value reached it.</p>' +
+      '<div class="grid2">' + cards + "</div></section>";
+  }
+
+  function renderLifecycle() {
+    var t = T();
+    var hasLock = t.runs.some(function (r) { return r.ok && r.ledger.locked; });
+    var parks = t.facts.roles.map(function (r) { return r.parks; }).join(", ");
+    var steps = ['<span class="step">Available</span>', '<span class="step here">Parked · ' + esc(parks) + "</span>", '<span class="step">Consumed by an execution</span>', '<span class="step">Allocated</span>',
+      '<span class="step unknown">Pending collection</span>', '<span class="step unknown">Collected</span>'];
+    var main = '<div class="flow">' + steps.join('<span class="arrow" aria-hidden="true">→</span>') + "</div>";
+    var lock = hasLock ? '<div class="flow"><span class="step">Consumed</span><span class="arrow">→</span><span class="step">Locked</span><span class="arrow">→</span><span class="step">Carried on the executor\'s own chain</span><span class="arrow">→</span><span class="step">Paid out or released in a later run</span></div>' : "";
+    return "<section>" + secHead("Lifecycle of parked value", "Collection happens on the receiver's chain") +
+      '<div class="panel" style="display:grid;gap:12px">' + main + lock +
+      '<p class="small muted">A "return" is an allocation back to the payer. Dotted steps are not observable in a simulation and show as ' + evBadge("unknown") + ". A consumed input that no allocation cites is lost.</p></div></section>";
+  }
+
+  function renderFailures() {
+    var t = T();
+    var fails = t.exploration.outcomes.filter(function (o) { return o.outcome.indexOf("FAIL:") === 0; });
+    if (!fails.length) return "<section>" + secHead("Failures") + '<p class="muted">Every explored run produced output.</p></section>';
+    var items = fails.map(function (o) {
+      var r = runById(o.runs[0]);
+      return '<div class="item">' + glyph("danger") + '<div class="body"><p><b>' + esc(cleanError(o.outcome)) + '</b></p><p class="small">No RAVE would be committed in these ' + o.runs.length + " runs. Parked inputs would stay parked.</p>" +
+        '<div class="small muted">Example inputs: ' + Object.keys(r.choice).map(function (k) { return esc(k) + " = " + esc(r.choice[k]); }).join(" · ") + "</div>" +
+        '<div class="small muted">Runs: ' + runLinks(o.runs, 10) + "</div></div></div>";
+    }).join("");
+    return "<section>" + secHead("Failures", fails.reduce(function (a, o) { return a + o.runs.length; }, 0) + " runs refused by the engine") + '<div class="list">' + items + "</div></section>";
+  }
+
+  function renderFindings() {
+    var t = T();
+    var sc = t.schema_checks;
+    var rows = Object.keys(sc).map(function (f) {
+      return "<tr><td class='mono'>" + esc(f) + "</td><td>" + (sc[f].ok ? '<span class="ev ev-rule">Accepted</span>' : '<span class="ev ev-fail">Refused</span>') + "</td><td class='small'>" + esc(sc[f].reason || "") + "</td></tr>";
+    }).join("");
+    var norm = [];
+    t.runs.forEach(function (r) {
+      if (!r.ok) return;
+      r.ledger.consumed.forEach(function (c) {
+        r.ledger.allocations.forEach(function (a) {
+          Object.keys(c.amounts).forEach(function (u) { if (a.amounts[u] && a.amounts[u] !== c.amounts[u] && a.sources.indexOf(c.source) >= 0 && r.ledger.allocations.length === 1 && !r.ledger.locked) norm.push([c.amounts[u], a.amounts[u]]); });
+        });
+      });
+    });
+    var normNote = norm.length ? '<li>The engine normalises amounts: <span class="mono">"' + esc(norm[0][0]) + '"</span> parked became <span class="mono">"' + esc(norm[0][1]) + '"</span> allocated. Compare amounts with precision-aware equality, and display the engine\'s string.</li>' : "";
+    var o = t.outputs;
+    return "<section>" + secHead("Phase 0 findings", "From running the real engine on this template") +
+      '<div class="panel"><ul class="plain">' +
+      "<li>" + esc(DATA.engine.crate + " " + DATA.engine.version) + " builds and runs natively, outside a Holochain conductor, for templates that make no host calls. This answers Phase 0 question 1 for that case.</li>" +
+      normNote +
+      "<li>Output fields declared: <span class='mono'>" + esc(o.declared.join(", ")) + "</span>. Observed: <span class='mono'>" + esc(o.observed.join(", ")) + "</span>." + (o.required_never_produced.length ? " Required but never produced: <span class='mono'>" + esc(o.required_never_produced.join(", ")) + "</span>." : "") + "</li>" +
+      "<li>" + t.exploration.excluded.length + " input combinations were skipped as impossible, because a previous execution can only come from the executing agent's own chain.</li>" +
+      "<li>Not yet possible here: captured replay, chain replay, DNA validation, warrants and collection status. Those need a conductor or chain access.</li>" +
+      "</ul></div>" +
+      '<h3>Schema check by the engine\'s 0.13.0 validator</h3><div class="tbl-wrap"><table><thead><tr><th>File</th><th>Result</th><th>Reason</th></tr></thead><tbody>' + rows + "</tbody></table></div>" +
+      '<p class="small muted">The engine never runs this check on <span class="mono">agreement_definition_input.json</span> itself. A refusal matters only if a form generator uses the engine validator for creation forms.</p></section>';
+  }
+
+  var RENDER = { summary: renderSummary, trust: renderTrust, inputs: renderInputs, explore: renderExplore, beneficiaries: renderBeneficiaries, lifecycle: renderLifecycle, failures: renderFailures, findings: renderFindings };
+
+  function initChoice() {
+    var t = T();
+    var first = t.runs.find(function (r) { return r.ok && r.ledger.allocations.some(function (a) { return !a.name_only; }); }) || t.runs[0];
+    state.choice = Object.assign({}, first.choice);
+    state.runId = first.id;
+  }
+
+  function render() {
+    renderHeader();
+    document.getElementById("main").innerHTML = VIEWS[state.view].sections.map(function (s) { return RENDER[s](); }).join("");
+  }
+
+  function selectRun(id) {
+    var r = runById(id);
+    if (!r) return;
+    state.choice = Object.assign({}, r.choice);
+    state.runId = id;
+    if (VIEWS[state.view].sections.indexOf("explore") < 0) state.view = "auditor";
+    render();
+    var el = document.getElementById("ledger");
+    if (el) el.scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start" });
+  }
+
+  document.addEventListener("click", function (ev) {
+    var b = ev.target.closest("button");
+    if (!b) return;
+    if (b.dataset.tpl !== undefined) {
+      state.tpl = +b.dataset.tpl; initChoice(); render();
+      try { history.replaceState(null, "", "#" + T().template); } catch (e) {}
+    } else if (b.dataset.view) {
+      state.view = b.dataset.view; render();
+      try { localStorage.setItem("inspector-state", JSON.stringify({ view: state.view })); } catch (e) {}
+    } else if (b.dataset.run) {
+      selectRun(b.dataset.run);
+    }
+  });
+  document.addEventListener("change", function (ev) {
+    var s = ev.target;
+    if (s.dataset && s.dataset.dim) {
+      state.choice[s.dataset.dim] = s.value;
+      document.getElementById("ledger").innerHTML = renderLedger();
+      document.querySelectorAll(".outcome").forEach(function (o) {
+        var runs = T().exploration.outcomes.find(function (x) { return x.runs[0] === o.dataset.run; }).runs;
+        o.setAttribute("aria-current", String(runs.indexOf(state.runId) >= 0));
+      });
+    }
+  });
+
+  initChoice();
+  render();
+})();
+</script>

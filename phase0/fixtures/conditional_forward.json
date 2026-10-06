@@ -1,0 +1,28 @@
+{
+  "template": "conditional_forward",
+  "instance_file": "agreements/agreement_rules_1.json",
+  "mode": "hypothetical",
+  "note": "Hypothetical snapshot: no captured chain execution exists for this template. Alice parks 100.50 of unit 0 and names Bob as receiver and herself as return address.",
+  "people": {
+    "alice": "Spender (parks the value and supplies both addresses)",
+    "bob": "Named receiver (not a role)",
+    "carol": "Unrelated agent"
+  },
+  "parked_by": { "link_a": "alice" },
+  "base": {
+    "executor": "alice",
+    "consumed_inputs": {
+      "spender_allocations": { "data": { "amount": { "0": "100.50" }, "source": "@link_a" }, "link_hash": "@link_a" },
+      "receiver": { "data": "@bob", "link_hash": "@link_a" },
+      "return_address": { "data": "@alice", "link_hash": "@link_a" }
+    },
+    "inputs": {
+      "condition_met": { "data": true }
+    }
+  },
+  "dimensions": [
+    { "name": "executor", "label": "Who executes", "path": "executor", "values": ["@alice", "@bob", "@carol"] },
+    { "name": "condition_met", "label": "condition_met (executor-provided)", "path": "inputs.condition_met", "values": [{ "data": true }, { "data": false }, "<absent>"] },
+    { "name": "return_address", "label": "Return address (supplied by spender)", "path": "consumed_inputs.return_address.data", "values": ["@alice", "@carol"] }
+  ]
+}

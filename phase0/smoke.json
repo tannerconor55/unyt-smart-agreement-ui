@@ -1,0 +1,7 @@
+[{"id":"cf_true","code_path":"/tmp/smart_agreement_library/library/conditional_forward/execution_code.rhai",
+ "ea_id":"uhCkkZGRkZGRkZGRkZGRkZGRkZGRkZGRkZGRkZGRkZGRkZGQaWPdO",
+ "executor":"uhCAkCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwvl71_G","timestamp_micros":1790000000000000,
+ "input":{"consumed_inputs":{"spender_allocations":{"data":{"amount":{"0":"100.50"},"source":"uhCkkZWVlZWVlZWVlZWVlZWVlZWVlZWVlZWVlZWVlZWVlZWVEq61D"},"link_hash":"uhCkkZWVlZWVlZWVlZWVlZWVlZWVlZWVlZWVlZWVlZWVlZWVEq61D"},
+   "receiver":{"data":"uhCAkDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwKwOib","link_hash":"uhCkkZWVlZWVlZWVlZWVlZWVlZWVlZWVlZWVlZWVlZWVlZWVEq61D"},
+   "return_address":{"data":"uhCAkCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwvl71_G","link_hash":"uhCkkZWVlZWVlZWVlZWVlZWVlZWVlZWVlZWVlZWVlZWVlZWVEq61D"}},
+  "inputs":{"condition_met":{"data":true},"condition_to_meet":{"data":"Did the dude find my car?"}}}}]

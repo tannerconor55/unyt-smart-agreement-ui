@@ -1,0 +1,39 @@
+{
+  "template": "lockbox",
+  "instance_file": "agreements/agreement_rules_1.json",
+  "mode": "hypothetical",
+  "note": "Hypothetical snapshot: Alice is the intended locker. Her previous execution (prev_rave_1) left 70 of unit 0 locked. Carol is any other agent; under executor_rules Any she may also execute.",
+  "people": {
+    "alice": "Locker (parks value; intended sole executor)",
+    "bob": "Payout receiver chosen by an executor",
+    "carol": "Unrelated agent"
+  },
+  "parked_by": { "link_a": "alice" },
+  "previous_executions": {
+    "@prev_rave_1": { "author": "alice", "output": { "locked": { "0": "70" } } }
+  },
+  "base": {
+    "executor": "alice",
+    "consumed_inputs": {
+      "locker_spender_allocations": [
+        { "data": { "amount": { "0": "100" }, "source": "@link_a" }, "link_hash": "@link_a" }
+      ]
+    },
+    "inputs": {
+      "previous_execution": { "data": null }
+    }
+  },
+  "dimensions": [
+    { "name": "executor", "label": "Who executes", "path": "executor", "values": ["@alice", "@carol"] },
+    { "name": "parked", "label": "Newly parked by Alice", "path": "consumed_inputs.locker_spender_allocations",
+      "values": [
+        [{ "data": { "amount": { "0": "100" }, "source": "@link_a" }, "link_hash": "@link_a" }],
+        []
+      ] },
+    { "name": "previous_execution", "label": "Previous execution (executor's own chain)", "path": "inputs.previous_execution",
+      "values": [{ "data": null }, { "data": { "id": "@prev_rave_1", "output": "@prev_rave_1.output" } }] },
+    { "name": "unlock", "label": "unlock (executor-provided)", "path": "inputs.unlock", "values": ["<absent>", { "data": true }, { "data": false }] },
+    { "name": "payout_amount", "label": "payout_amount (executor-provided)", "path": "inputs.payout_amount", "values": ["<absent>", { "data": "30" }, { "data": "1000" }] },
+    { "name": "payout_receiver", "label": "payout_receiver (executor-provided)", "path": "inputs.payout_receiver", "values": ["<absent>", { "data": "@bob" }, { "data": "@executor" }] }
+  ]
+}
